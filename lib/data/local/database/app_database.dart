@@ -300,6 +300,92 @@ class AppDatabase extends _$AppDatabase {
   /// Avoids platform path-provider and background-isolate dependencies.
   AppDatabase.forTesting() : super(NativeDatabase.memory());
 
+  /// Creates a consistent SQLite backup at [destinationPath].
+  /// The backup is tagged so restore can reject unrelated SQLite files.
+  Future<void> createBackup(String destinationPath) async {
+    final escapedPath = destinationPath.replaceAll("'", "''");
+    await customStatement('''
+      CREATE TABLE IF NOT EXISTS vendra_backup_metadata (
+        app_name TEXT NOT NULL,
+        format_version INTEGER NOT NULL
+      )
+    ''');
+    await customStatement('DELETE FROM vendra_backup_metadata');
+    await customStatement(
+      "INSERT INTO vendra_backup_metadata (app_name, format_version) VALUES ('VendraOne', 1)",
+    );
+    await customStatement("VACUUM INTO '$escapedPath'");
+  }
+
+  /// Restores a VendraOne backup transactionally into the open database.
+  Future<void> restoreBackup(String sourcePath) async {
+    final escapedPath = sourcePath.replaceAll("'", "''");
+    await customStatement("ATTACH DATABASE '$escapedPath' AS vendra_restore");
+
+    try {
+      final metadata = await customSelect(
+        'SELECT app_name, format_version FROM vendra_restore.vendra_backup_metadata',
+      ).get();
+
+      if (metadata.length != 1 ||
+          metadata.first.read<String>('app_name') != 'VendraOne' ||
+          metadata.first.read<int>('format_version') != 1) {
+        throw const FormatException('This is not a valid VendraOne backup.');
+      }
+
+      const tables = [
+        'categories',
+        'products',
+        'customers',
+        'sales',
+        'sale_items',
+        'payments',
+        'refunds',
+        'refund_items',
+        'refund_payments',
+        'suppliers',
+        'purchases',
+        'purchase_items',
+        'expenses',
+      ];
+
+      for (final table in tables) {
+        final exists = await customSelect(
+          "SELECT name FROM vendra_restore.sqlite_master WHERE type = 'table' AND name = ?",
+          variables: [Variable.withString(table)],
+        ).get();
+        if (exists.isEmpty) {
+          throw FormatException('Backup is missing required data: $table');
+        }
+      }
+
+      await customStatement('PRAGMA foreign_keys = OFF');
+      try {
+        await transaction(() async {
+          for (final table in tables.reversed) {
+            await customStatement('DELETE FROM main.$table');
+          }
+          for (final table in tables) {
+            await customStatement(
+              'INSERT INTO main.$table SELECT * FROM vendra_restore.$table',
+            );
+          }
+        });
+      } finally {
+        await customStatement('PRAGMA foreign_keys = ON');
+      }
+
+      final violations = await customSelect('PRAGMA foreign_key_check').get();
+      if (violations.isNotEmpty) {
+        throw const FormatException(
+          'The backup contains inconsistent related records.',
+        );
+      }
+    } finally {
+      await customStatement('DETACH DATABASE vendra_restore');
+    }
+  }
+
   @override
   int get schemaVersion => 4;
 
