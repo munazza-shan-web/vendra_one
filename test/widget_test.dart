@@ -5,10 +5,12 @@ void main() {
   testWidgets('VendraOne test environment renders a Material app',
       (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
         home: Scaffold(
-          appBar: AppBar(title: Text('VendraOne')),
-          body: Center(child: Text('App test environment is ready')),
+          appBar: AppBar(title: const Text('VendraOne')),
+          body: const Center(
+            child: Text('App test environment is ready'),
+          ),
         ),
       ),
     );
