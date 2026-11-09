@@ -161,20 +161,21 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       return;
     }
 
-    if (match.stockQuantity <= 0) {
-      _showMessage('${match.name} is out of stock.');
+    final product = match;
+    if (product.stockQuantity <= 0) {
+      _showMessage('${product.name} is out of stock.');
       return;
     }
 
     setState(() {
       _search = '';
       _searchController.clear();
-      final currentQuantity = _cart[match!.id] ?? 0;
-      if (currentQuantity < match.stockQuantity) {
-        _cart[match.id] = currentQuantity + 1;
+      final currentQuantity = _cart[product.id] ?? 0;
+      if (currentQuantity < product.stockQuantity) {
+        _cart[product.id] = currentQuantity + 1;
       }
     });
-    _showMessage('${match.name} added to cart.');
+    _showMessage('${product.name} added to cart.');
   }
 
   Future<void> _checkout(List<Product> products) async {
