@@ -296,6 +296,10 @@ class RefundPayments extends Table {
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
+  /// In-memory database for widget and repository tests.
+  /// Avoids platform path-provider and background-isolate dependencies.
+  AppDatabase.forTesting() : super(NativeDatabase.memory());
+
   @override
   int get schemaVersion => 4;
 
