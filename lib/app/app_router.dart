@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/dashboard/presentation/dashboard_screen.dart';
 import '../features/customers/presentation/customers_screen.dart';
+import '../features/expenses/presentation/expenses_screen.dart';
 import '../features/products/presentation/products_screen.dart';
 import '../features/purchases/presentation/purchases_screen.dart';
 import '../features/sales/presentation/sales_screen.dart';
@@ -55,6 +56,14 @@ final appRouter = GoRouter(
             GoRoute(
               path: '/purchases',
               builder: (context, state) => const PurchasesScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/expenses',
+              builder: (context, state) => const ExpensesScreen(),
             ),
           ],
         ),
@@ -127,6 +136,11 @@ class MainNavigationShell extends StatelessWidget {
             icon: Icon(Icons.shopping_bag_outlined),
             selectedIcon: Icon(Icons.shopping_bag),
             label: 'Purchases',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.money_off_outlined),
+            selectedIcon: Icon(Icons.money_off),
+            label: 'Expenses',
           ),
           NavigationDestination(
             icon: Icon(Icons.bar_chart_outlined),
