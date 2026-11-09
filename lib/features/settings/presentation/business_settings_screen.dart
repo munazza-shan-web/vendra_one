@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'backup_restore_card.dart';
+
 class BusinessSettingsScreen extends StatefulWidget {
   const BusinessSettingsScreen({super.key});
 
@@ -207,6 +209,8 @@ class _BusinessSettingsScreenState extends State<BusinessSettingsScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 14),
+                const BackupRestoreCard(),
                 const SizedBox(height: 14),
                 const Card(
                   child: Padding(
