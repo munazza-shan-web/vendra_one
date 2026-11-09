@@ -6,6 +6,7 @@ import '../../../data/local/database/app_database.dart';
 import '../../../data/repositories/customer_repository.dart';
 import '../../../data/repositories/product_repository.dart';
 import '../../../data/repositories/sales_repository.dart';
+import '../../scanner/presentation/barcode_scanner_screen.dart';
 
 String _money(int minor) => 'Rs ${(minor / 100).toStringAsFixed(2)}';
 
@@ -134,6 +135,46 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
     nameController.dispose();
     phoneController.dispose();
+  }
+
+  Future<void> _scanBarcode() async {
+    final barcode = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
+    );
+    if (!mounted || barcode == null || barcode.isEmpty) return;
+
+    final products = await ref.read(productRepositoryProvider).getAllProducts();
+    if (!mounted) return;
+
+    Product? match;
+    for (final product in products) {
+      if (product.barcode?.trim() == barcode) {
+        match = product;
+        break;
+      }
+    }
+
+    _searchController.text = barcode;
+    if (match == null) {
+      setState(() => _search = barcode);
+      _showMessage('No product is registered with barcode $barcode.');
+      return;
+    }
+
+    if (match.stockQuantity <= 0) {
+      _showMessage('${match.name} is out of stock.');
+      return;
+    }
+
+    setState(() {
+      _search = '';
+      _searchController.clear();
+      final currentQuantity = _cart[match!.id] ?? 0;
+      if (currentQuantity < match.stockQuantity) {
+        _cart[match.id] = currentQuantity + 1;
+      }
+    });
+    _showMessage('${match.name} added to cart.');
   }
 
   Future<void> _checkout(List<Product> products) async {
@@ -300,12 +341,23 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   decoration: InputDecoration(
                     hintText: 'Search products by name, SKU or barcode',
                     prefixIcon: const Icon(Icons.search),
-                    suffixIcon: IconButton(
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() => _search = '');
-                      },
-                      icon: const Icon(Icons.clear),
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          tooltip: 'Scan barcode',
+                          onPressed: _scanBarcode,
+                          icon: const Icon(Icons.qr_code_scanner),
+                        ),
+                        IconButton(
+                          tooltip: 'Clear search',
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _search = '');
+                          },
+                          icon: const Icon(Icons.clear),
+                        ),
+                      ],
                     ),
                     border: const OutlineInputBorder(),
                   ),
