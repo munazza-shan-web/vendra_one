@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/repositories/sales_repository.dart';
+import '../../../services/receipt_service.dart';
 
 String _money(int minor) => 'Rs ${(minor / 100).toStringAsFixed(2)}';
 
@@ -43,6 +44,23 @@ class _SaleDetailsScreenState extends ConsumerState<SaleDetailsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
+  }
+
+  Future<void> _handleReceipt(
+    SaleDetails details, {
+    required bool share,
+  }) async {
+    try {
+      if (share) {
+        await ReceiptService.shareReceipt(details);
+      } else {
+        await ReceiptService.printReceipt(details);
+      }
+    } catch (error) {
+      if (mounted) {
+        _message('Could not prepare receipt: $error');
+      }
+    }
   }
 
   Future<void> _collectPayment(SaleDetails details) async {
@@ -508,6 +526,31 @@ class _SaleDetailsScreenState extends ConsumerState<SaleDetailsScreen> {
                         ),
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Receipt',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _handleReceipt(details, share: false),
+                          icon: const Icon(Icons.print_outlined),
+                          label: const Text('Print receipt'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _handleReceipt(details, share: true),
+                          icon: const Icon(Icons.share_outlined),
+                          label: const Text('Share PDF'),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   Text(
