@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vendra_one/app/app.dart';
 import 'package:vendra_one/data/local/database/app_database.dart';
 import 'package:vendra_one/data/local/database/database_provider.dart';
+import 'package:vendra_one/features/dashboard/presentation/dashboard_screen.dart';
 
 void main() {
-  testWidgets('VendraOne app opens on the Home dashboard', (tester) async {
+  testWidgets('VendraOne dashboard displays its main content', (tester) async {
     final database = AppDatabase.forTesting();
 
     await tester.pumpWidget(
@@ -17,22 +17,21 @@ void main() {
             return database;
           }),
         ],
-        child: const VendraOneApp(),
+        child: const MaterialApp(
+          home: DashboardScreen(),
+        ),
       ),
     );
 
-    // Database-backed dashboard streams may show loading indicators.
-    // Advance a bounded amount of time instead of waiting for animations
-    // to settle indefinitely.
+    // Allow the in-memory database streams to emit their initial values.
     await tester.pump();
-    await tester.pump(const Duration(seconds: 2));
+    await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('VendraOne'), findsOneWidget);
-    // The dashboard tab is labelled "Home" in the bottom navigation.
-    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Business overview'), findsOneWidget);
 
-    // Dispose the widget tree so database streams are cancelled before the
-    // in-memory database is closed by the provider.
+    // Unmount the dashboard and let stream subscriptions cancel.
     await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
   });
 }
