@@ -297,7 +297,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -313,6 +313,51 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(refunds);
             await m.createTable(refundItems);
             await m.createTable(refundPayments);
+          }
+          if (from < 3) {
+            await customStatement('''
+              CREATE TABLE suppliers (
+                id TEXT NOT NULL PRIMARY KEY,
+                name TEXT NOT NULL,
+                phone TEXT,
+                email TEXT,
+                address TEXT,
+                notes TEXT,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at INTEGER NOT NULL
+              )
+            ''');
+            await customStatement('''
+              CREATE TABLE purchases (
+                id TEXT NOT NULL PRIMARY KEY,
+                purchase_number TEXT NOT NULL UNIQUE,
+                supplier_id TEXT NOT NULL REFERENCES suppliers(id),
+                subtotal_minor INTEGER NOT NULL,
+                discount_minor INTEGER NOT NULL DEFAULT 0,
+                total_minor INTEGER NOT NULL,
+                paid_minor INTEGER NOT NULL DEFAULT 0,
+                status TEXT NOT NULL DEFAULT 'received',
+                notes TEXT,
+                created_at INTEGER NOT NULL
+              )
+            ''');
+            await customStatement('''
+              CREATE TABLE purchase_items (
+                id TEXT NOT NULL PRIMARY KEY,
+                purchase_id TEXT NOT NULL REFERENCES purchases(id),
+                product_id TEXT NOT NULL REFERENCES products(id),
+                product_name TEXT NOT NULL,
+                quantity INTEGER NOT NULL,
+                unit_cost_minor INTEGER NOT NULL,
+                line_total_minor INTEGER NOT NULL
+              )
+            ''');
+            await customStatement(
+              'CREATE INDEX purchases_supplier_idx ON purchases(supplier_id)',
+            );
+            await customStatement(
+              'CREATE INDEX purchase_items_purchase_idx ON purchase_items(purchase_id)',
+            );
           }
         },
         beforeOpen: (details) async {
