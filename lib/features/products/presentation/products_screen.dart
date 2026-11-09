@@ -20,6 +20,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   String? _selectedCategoryId;
+  int _stockFilter = 0; // 0 = all, 1 = low stock, 2 = out of stock
 
   @override
   void dispose() {
@@ -97,7 +98,20 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
               },
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 42,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                _stockChip('All stock', 0),
+                _stockChip('Low stock', 1),
+                _stockChip('Out of stock', 2),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
           Expanded(
             child: StreamBuilder<List<Product>>(
               stream: productRepository.watchProducts(),
@@ -129,7 +143,12 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                   final matchesCategory = _selectedCategoryId == null ||
                       product.categoryId == _selectedCategoryId;
 
-                  return matchesSearch && matchesCategory;
+                  final matchesStock = _stockFilter == 0 ||
+                      (_stockFilter == 1 &&
+                          product.stockQuantity <= product.lowStockThreshold) ||
+                      (_stockFilter == 2 && product.stockQuantity == 0);
+
+                  return matchesSearch && matchesCategory && matchesStock;
                 }).toList();
 
                 if (filteredProducts.isEmpty) {
@@ -153,6 +172,17 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _stockChip(String label, int filter) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: _stockFilter == filter,
+        onSelected: (_) => setState(() => _stockFilter = filter),
       ),
     );
   }
@@ -211,6 +241,98 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
     );
   }
 
+  Future<void> _showAdjustStock(Product product) async {
+    final quantityController = TextEditingController();
+    var addStock = true;
+    final quantity = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Adjust inventory'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Product: ${product.name}'),
+              Text('Current stock: ${product.stockQuantity}'),
+              const SizedBox(height: 16),
+              SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment(
+                    value: true,
+                    label: Text('Add'),
+                    icon: Icon(Icons.add),
+                  ),
+                  ButtonSegment(
+                    value: false,
+                    label: Text('Remove'),
+                    icon: Icon(Icons.remove),
+                  ),
+                ],
+                selected: {addStock},
+                onSelectionChanged: (selection) =>
+                    setDialogState(() => addStock = selection.first),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: quantityController,
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Quantity',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final amount = int.tryParse(quantityController.text.trim());
+                if (amount == null || amount <= 0) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(content: Text('Enter a quantity greater than zero.')),
+                  );
+                  return;
+                }
+                Navigator.pop(dialogContext, addStock ? amount : -amount);
+              },
+              child: const Text('Apply adjustment'),
+            ),
+          ],
+        ),
+      ),
+    );
+    quantityController.dispose();
+
+    if (quantity == null || !mounted) return;
+    try {
+      await ref.read(productRepositoryProvider).adjustStock(
+            productId: product.id,
+            quantityChange: quantity,
+          );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            quantity > 0
+                ? 'Stock increased by ${quantity.abs()}.'
+                : 'Stock decreased by ${quantity.abs()}.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Stock adjustment failed: $error')),
+      );
+    }
+  }
+
   void _showProductDetails(Product product) {
     showModalBottomSheet<void>(
       context: context,
@@ -238,6 +360,18 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
               Text('SKU: ${product.sku ?? 'Not set'}'),
               Text('Barcode: ${product.barcode ?? 'Not set'}'),
               const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(sheetContext).pop();
+                    _showAdjustStock(product);
+                  },
+                  icon: const Icon(Icons.swap_vert_circle_outlined),
+                  label: const Text('Adjust stock'),
+                ),
+              ),
+              const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
