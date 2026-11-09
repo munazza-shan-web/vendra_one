@@ -8,6 +8,7 @@ import '../features/expenses/presentation/expenses_screen.dart';
 import '../features/products/presentation/products_screen.dart';
 import '../features/purchases/presentation/purchases_screen.dart';
 import '../features/reports/presentation/reports_screen.dart';
+import '../features/settings/presentation/business_settings_screen.dart';
 import '../features/sales/presentation/sales_screen.dart';
 
 final appRouter = GoRouter(
@@ -80,10 +81,7 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/settings',
-              builder: (context, state) => const PlaceholderScreen(
-                title: 'Settings',
-                icon: Icons.settings_outlined,
-              ),
+              builder: (context, state) => const BusinessSettingsScreen(),
             ),
           ],
         ),
