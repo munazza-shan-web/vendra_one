@@ -389,7 +389,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -536,6 +536,74 @@ class AppDatabase extends _$AppDatabase {
             );
             await customStatement(
               'CREATE INDEX expenses_category_idx ON expenses(category)',
+            );
+          }
+
+          // Repair databases created by earlier builds where onCreate did not
+          // create the SQL-managed tables. IF NOT EXISTS keeps this safe for
+          // databases that already contain some or all of them.
+          if (from < 5) {
+            await customStatement('''
+              CREATE TABLE IF NOT EXISTS suppliers (
+                id TEXT NOT NULL PRIMARY KEY,
+                name TEXT NOT NULL,
+                phone TEXT,
+                email TEXT,
+                address TEXT,
+                notes TEXT,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at INTEGER NOT NULL
+              )
+            ''');
+            await customStatement('''
+              CREATE TABLE IF NOT EXISTS purchases (
+                id TEXT NOT NULL PRIMARY KEY,
+                purchase_number TEXT NOT NULL UNIQUE,
+                supplier_id TEXT NOT NULL REFERENCES suppliers(id),
+                subtotal_minor INTEGER NOT NULL,
+                discount_minor INTEGER NOT NULL DEFAULT 0,
+                total_minor INTEGER NOT NULL,
+                paid_minor INTEGER NOT NULL DEFAULT 0,
+                status TEXT NOT NULL DEFAULT 'received',
+                notes TEXT,
+                created_at INTEGER NOT NULL
+              )
+            ''');
+            await customStatement('''
+              CREATE TABLE IF NOT EXISTS purchase_items (
+                id TEXT NOT NULL PRIMARY KEY,
+                purchase_id TEXT NOT NULL REFERENCES purchases(id),
+                product_id TEXT NOT NULL REFERENCES products(id),
+                product_name TEXT NOT NULL,
+                quantity INTEGER NOT NULL,
+                unit_cost_minor INTEGER NOT NULL,
+                line_total_minor INTEGER NOT NULL
+              )
+            ''');
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS purchases_supplier_idx ON purchases(supplier_id)',
+            );
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS purchase_items_purchase_idx ON purchase_items(purchase_id)',
+            );
+            await customStatement('''
+              CREATE TABLE IF NOT EXISTS expenses (
+                id TEXT NOT NULL PRIMARY KEY,
+                title TEXT NOT NULL,
+                category TEXT NOT NULL,
+                amount_minor INTEGER NOT NULL,
+                payment_method TEXT NOT NULL DEFAULT 'cash',
+                reference TEXT,
+                notes TEXT,
+                expense_date INTEGER NOT NULL,
+                created_at INTEGER NOT NULL
+              )
+            ''');
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS expenses_date_idx ON expenses(expense_date)',
+            );
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS expenses_category_idx ON expenses(category)',
             );
           }
         },
