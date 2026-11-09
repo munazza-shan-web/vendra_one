@@ -297,7 +297,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -357,6 +357,28 @@ class AppDatabase extends _$AppDatabase {
             );
             await customStatement(
               'CREATE INDEX purchase_items_purchase_idx ON purchase_items(purchase_id)',
+            );
+          }
+
+          if (from < 4) {
+            await customStatement('''
+              CREATE TABLE expenses (
+                id TEXT NOT NULL PRIMARY KEY,
+                title TEXT NOT NULL,
+                category TEXT NOT NULL,
+                amount_minor INTEGER NOT NULL,
+                payment_method TEXT NOT NULL DEFAULT 'cash',
+                reference TEXT,
+                notes TEXT,
+                expense_date INTEGER NOT NULL,
+                created_at INTEGER NOT NULL
+              )
+            ''');
+            await customStatement(
+              'CREATE INDEX expenses_date_idx ON expenses(expense_date)',
+            );
+            await customStatement(
+              'CREATE INDEX expenses_category_idx ON expenses(category)',
             );
           }
         },
