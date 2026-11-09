@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/dashboard/presentation/dashboard_screen.dart';
+import '../features/customers/presentation/customers_screen.dart';
 import '../features/products/presentation/products_screen.dart';
 import '../features/sales/presentation/sales_screen.dart';
 
@@ -37,6 +38,14 @@ final appRouter = GoRouter(
             GoRoute(
               path: '/products',
               builder: (context, state) => const ProductsScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/customers',
+              builder: (context, state) => const CustomersScreen(),
             ),
           ],
         ),
@@ -99,6 +108,11 @@ class MainNavigationShell extends StatelessWidget {
             icon: Icon(Icons.inventory_2_outlined),
             selectedIcon: Icon(Icons.inventory_2),
             label: 'Products',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.people_outline),
+            selectedIcon: Icon(Icons.people),
+            label: 'Customers',
           ),
           NavigationDestination(
             icon: Icon(Icons.bar_chart_outlined),
