@@ -7,6 +7,7 @@ import '../features/customers/presentation/customers_screen.dart';
 import '../features/expenses/presentation/expenses_screen.dart';
 import '../features/products/presentation/products_screen.dart';
 import '../features/purchases/presentation/purchases_screen.dart';
+import '../features/reports/presentation/reports_screen.dart';
 import '../features/sales/presentation/sales_screen.dart';
 
 final appRouter = GoRouter(
@@ -71,10 +72,7 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/reports',
-              builder: (context, state) => const PlaceholderScreen(
-                title: 'Reports',
-                icon: Icons.bar_chart,
-              ),
+              builder: (context, state) => const ReportsScreen(),
             ),
           ],
         ),
