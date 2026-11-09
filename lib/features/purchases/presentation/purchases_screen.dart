@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../../data/local/database/app_database.dart';
 import '../../../data/repositories/product_repository.dart';
 import '../../../data/repositories/supplier_purchase_repository.dart';
 
@@ -108,7 +107,9 @@ class PurchasesScreen extends ConsumerWidget {
     }
 
     final quantityController = TextEditingController(text: '1');
-    final costController = TextEditingController();
+    final costController = TextEditingController(
+      text: (products.first.costPriceMinor / 100).toStringAsFixed(2),
+    );
     final discountController = TextEditingController(text: '0');
     final paidController = TextEditingController(text: '0');
     final notesController = TextEditingController();
@@ -120,7 +121,6 @@ class PurchasesScreen extends ConsumerWidget {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) {
-          final selectedProduct = products.firstWhere((p) => p.id == productId);
           final subtotal = lines.fold<int>(
             0,
             (sum, line) => sum + line.quantity * line.unitCostMinor,
