@@ -370,17 +370,19 @@ class AppDatabase extends _$AppDatabase {
               'INSERT INTO main.$table SELECT * FROM vendra_restore.$table',
             );
           }
+          final violations = await customSelect(
+            'PRAGMA foreign_key_check',
+          ).get();
+          if (violations.isNotEmpty) {
+            throw const FormatException(
+              'The backup contains inconsistent related records.',
+            );
+          }
         });
       } finally {
         await customStatement('PRAGMA foreign_keys = ON');
       }
 
-      final violations = await customSelect('PRAGMA foreign_key_check').get();
-      if (violations.isNotEmpty) {
-        throw const FormatException(
-          'The backup contains inconsistent related records.',
-        );
-      }
     } finally {
       await customStatement('DETACH DATABASE vendra_restore');
     }
