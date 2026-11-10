@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../data/repositories/product_repository.dart';
 import '../../../data/repositories/sales_repository.dart';
+import '../../../core/widgets/vendra_one_logo.dart';
 
 String _money(int minor) => 'Rs ' + (minor / 100).toStringAsFixed(2);
 
@@ -19,7 +20,7 @@ class DashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('VendraOne'),
+        title: const VendraOneLogo(),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16),
